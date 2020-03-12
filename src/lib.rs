@@ -30,3 +30,4 @@
 #![allow(incomplete_features)]
 #![feature(const_generics)]
 pub mod safe_array_init;
+pub mod bounded_vectors;
