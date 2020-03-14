@@ -36,7 +36,28 @@ use super::safe_array_init::*;
 
 impl <Element, const CAPACITY: usize> Vector<Element,CAPACITY> {
 
-    pub fn new<F>(f : F) -> Self
+    pub fn new<F>(f : F, length : usize) -> Self
+        where F: FnMut() -> Element
+    {
+        if length > CAPACITY {
+            panic!("Vector::new() invalid length value");
+        }
+        return Self {
+            data : from_closure(f),
+            size : length
+        };
+    }
+
+    pub fn new_empty<F>(f : F) -> Self
+        where F: FnMut() -> Element
+    {
+        return Self {
+            data : from_closure(f),
+            size : 0
+        };
+    }
+
+    pub fn new_full<F>(f : F) -> Self
         where F: FnMut() -> Element
     {
         return Self {
@@ -44,12 +65,15 @@ impl <Element, const CAPACITY: usize> Vector<Element,CAPACITY> {
             size : CAPACITY
         };
     }
+
     pub fn capacity(&self) -> usize{
         return CAPACITY;
     }
+
     pub fn length(&self) -> usize{
         return self.size;
     }
+    
     pub fn append(&mut self, element : Element) -> bool {
         if self.size >= CAPACITY {
             return false;
@@ -78,6 +102,16 @@ impl <Element, const CAPACITY: usize> Vector<Element,CAPACITY> {
         }
         self.size = self.size - 1;
         return true;
+    }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        return self.size == 0;
+    }
+
+    #[inline]
+    pub fn is_full(&self) -> bool {
+        return self.size >= CAPACITY;
     }
 }
 
