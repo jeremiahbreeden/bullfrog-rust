@@ -72,12 +72,17 @@ pub fn from_closure<F,T,const N: usize>(mut closure : F) -> [T; N]
    // write each element.  Make sure count is updated after the write.  This
    // way, if a panic occurs, only the initialized elements will be dropped
    let array_ptr = result.elements.as_ptr() as *mut T;
-   for _i in 0 .. N {
+   let mut count = 0;
+   while count < N {
 
-      // ensure that the count is incremented before modifying the array
-      // using an atomic operation
-      let count = result.count.fetch_add(1,Ordering::Relaxed);
+      // Try initializing each element
       unsafe{array_ptr.add(count).write(closure())};
+
+      // Ensure that the count is incremented after modifying the array
+      // using an atomic operation so that only fully initialized
+      // elemetents will be dropped in the event of a panic!()
+      count = 1 + result.count.fetch_add(1,Ordering::Relaxed);
+      
    }
 
    // Cannot transmute out due to the Drop trait, so use read() instead
