@@ -73,7 +73,7 @@ impl <Element, const CAPACITY: usize> Vector<Element,CAPACITY> {
     pub fn length(&self) -> usize{
         return self.size;
     }
-    
+
     pub fn append(&mut self, element : Element) -> bool {
         if self.size >= CAPACITY {
             return false;
@@ -118,6 +118,28 @@ impl <Element, const CAPACITY: usize> Vector<Element,CAPACITY> {
 impl <Element, const CAPACITY: usize> Vector<Element,CAPACITY> 
     where Element : Clone
 {
+
+    pub fn element_at(&self, position : usize) -> Option<Element> {
+        if position >= self.size {
+            return None;
+        }
+        return Some(self.data[position].clone());
+    }
+
+    pub fn first_element(&self) -> Option<Element> {
+        if self.is_empty() {
+            return None;
+        }
+        return Some(self.data[0].clone());
+    }
+
+    pub fn last_element(&self) -> Option<Element> {
+        if self.is_empty() {
+            return None;
+        }
+        return Some(self.data[CAPACITY-1].clone());
+    }
+
     pub fn insert(&mut self, element : Element) -> bool {
         if self.size >= CAPACITY {
             return false;
