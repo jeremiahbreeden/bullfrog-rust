@@ -29,7 +29,7 @@
 *****************************************************************************/
 
 use std::mem::MaybeUninit;
-use std::sync::atomic::{Ordering,AtomicUsize};
+use std::sync::atomic::{Ordering,fence};
 
 // This is used to manage dropping only the elements that were
 // initialized.  
@@ -38,20 +38,18 @@ use std::sync::atomic::{Ordering,AtomicUsize};
 // elements.
 struct Wrapper<T, const N: usize>{
    pub elements : MaybeUninit<[T; N]>,
-   pub count    : AtomicUsize
+   pub count    : usize
 }
 
 impl<T, const N: usize> Drop for Wrapper<T,{N}> {
    fn drop(&mut self){
 
-      let count = self.count.load(Ordering::Relaxed);
-
       // If self.count is less than N, that means a panic happened
       // before initialization finished.  Only allow dropping 
       // initialized data
-      if count < N {
+      if self.count < N {
          let array_ptr = self.elements.as_ptr() as *mut T;
-         for i in 0 .. count {
+         for i in 0 .. self.count {
             unsafe{array_ptr.add(i).drop_in_place()};
          }
       }
@@ -64,24 +62,26 @@ pub fn from_closure<F,T,const N: usize>(mut closure : F) -> [T; N]
    where F: FnMut() -> T
 {
    // Start with a drop safe wrapper
-   let result = Wrapper::<T,{N}> {
+   let mut result = Wrapper::<T,{N}> {
       elements : MaybeUninit::uninit(),
-      count    : AtomicUsize::new(0)
+      count    : 0
    };
 
    // write each element.  Make sure count is updated after the write.  This
    // way, if a panic occurs, only the initialized elements will be dropped
    let array_ptr = result.elements.as_ptr() as *mut T;
-   let mut count = 0;
-   while count < N {
+
+   while result.count < N {
 
       // Try initializing each element
-      unsafe{array_ptr.add(count).write(closure())};
+      unsafe{array_ptr.add(result.count).write(closure())};
 
       // Ensure that the count is incremented after modifying the array
-      // using an atomic operation so that only fully initialized
+      // using a set of atomic fences so that only fully initialized
       // elemetents will be dropped in the event of a panic!()
-      count = 1 + result.count.fetch_add(1,Ordering::Relaxed);
+      fence(Ordering::Release);
+      result.count += 1;
+      fence(Ordering::Release);
       
    }
 
