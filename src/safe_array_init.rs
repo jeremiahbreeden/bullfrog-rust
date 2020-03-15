@@ -29,7 +29,6 @@
 *****************************************************************************/
 
 use std::mem::MaybeUninit;
-use std::sync::atomic::{Ordering,fence};
 
 // This is used to manage dropping only the elements that were
 // initialized.  
@@ -77,11 +76,9 @@ pub fn from_closure<F,T,const N: usize>(mut closure : F) -> [T; N]
       unsafe{array_ptr.add(result.count).write(closure())};
 
       // Ensure that the count is incremented after modifying the array
-      // using a set of atomic fences so that only fully initialized
-      // elemetents will be dropped in the event of a panic!()
-      fence(Ordering::Release);
+      // so that only fully initialized elemetents will be dropped in 
+      // the event of a panic!()
       result.count += 1;
-      fence(Ordering::Release);
       
    }
 
